@@ -7,7 +7,7 @@ module Lib
 import qualified Data.Map as Map
 import Data.Maybe (fromJust, isNothing, mapMaybe)
 import Data.List (nub)
-import System.Random (RandomGen, randomRs, split)
+import System.Random (RandomGen, randomR, randomRs, split)
 
 type Node = (Int, Int)
 
@@ -92,15 +92,18 @@ randomEnumList (rangeMin, rangeMax) =
 initMaze :: Int -> Int -> Maze
 initMaze w h = Maze w h Map.empty
 
-createMaze :: (RandomGen g) => g -> Int -> Int -> Node -> Maze
-createMaze gen w h = walk (gen, initMaze w h)
+createMaze :: (RandomGen g) => g -> Int -> Int -> Maze
+createMaze gen w h = walk (gen0, initMaze w h) (startX, startY)
   where
-    walk (gen, maze) n = foldl (walk' n) maze neighbours
+    (gen0, gen1)   = split gen
+    (startX, gen2) = randomR (1, w) gen1
+    (startY, _   ) = randomR (1, h) gen2
+    walk (g, maze) n = foldl (walk' n) maze neighbours
       where
-        (gen', gen'') = split gen
-        neighbours = mapMaybe (getNeighbour maze n) (randomEnumList (minBound, maxBound) gen')
+        (gen3, gen4) = split g
+        neighbours = mapMaybe (getNeighbour maze n) (randomEnumList (minBound, maxBound) gen3)
         walk' fromNode maze toNode
           | isVisited maze toNode = maze
-          | otherwise             = walk (gen'', openWall maze fromNode dir) toNode
+          | otherwise             = walk (gen4, openWall maze fromNode dir) toNode
           where
             dir = getDirection fromNode toNode

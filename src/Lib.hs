@@ -80,14 +80,11 @@ renderMaze (Maze w h edges) = unlines $ concatMap renderRow [1..h+1]
 randomEnumList :: (Enum a, RandomGen g) => (a, a) -> g -> [a]
 randomEnumList (rangeMin, rangeMax) =
   map toEnum
-  . head
-  . filter isUniq
-  . chunkN numDirs
+  . take l
+  . nub
   . randomRs (fromEnum rangeMin, fromEnum rangeMax)
   where
-    chunkN n l  = take n l : chunkN n (drop 1 l)
-    isUniq list = length list == length (nub list)
-    numDirs     = length [rangeMin .. rangeMax]
+    l = length [rangeMin .. rangeMax]
 
 initMaze :: Int -> Int -> Maze
 initMaze w h = Maze w h Map.empty

@@ -51,15 +51,15 @@ isVisited m n = any (isOpenWall m n) $ enumFrom minBound
 
 openWall :: Maze -> Node -> Dir -> Maze
 openWall m@(Maze w h edges) node dir
-  | isNothing neigh                        = m
-  | dir == U && closed                     = Maze w h $ Map.insert node UpNode edges
-  | dir == L && closed                     = Maze w h $ Map.insert node LeftNode edges
-  | (dir == U || dir == L) && (not closed) = Maze w h $ Map.insert node BothNodes edges
-  | dir == D                               = openWall m (fromJust neigh) U
-  | dir == R                               = openWall m (fromJust neigh) L
+  | isNothing neigh                          = m
+  | dir == U && hasNoAdj                     = Maze w h $ Map.insert node UpNode edges
+  | dir == L && hasNoAdj                     = Maze w h $ Map.insert node LeftNode edges
+  | (dir == U || dir == L) && (not hasNoAdj) = Maze w h $ Map.insert node BothNodes edges
+  | dir == D                                 = openWall m (fromJust neigh) U
+  | dir == R                                 = openWall m (fromJust neigh) L
   where
-    neigh = getNeighbour m node dir
-    closed = isNothing $ Map.lookup node edges
+    neigh    = getNeighbour m node dir
+    hasNoAdj = isNothing $ Map.lookup node edges
 
 renderMaze :: Maze -> String
 renderMaze (Maze w h edges) = unlines $ concatMap renderRow [1..h+1]
@@ -77,6 +77,18 @@ renderMaze (Maze w h edges) = unlines $ concatMap renderRow [1..h+1]
       where 
          adj = Map.lookup (x, y) edges
 
+randomEnumList :: (Enum a, RandomGen g) => (a, a) -> g -> [a]
+randomEnumList (rangeMin, rangeMax) =
+  map toEnum
+  . head
+  . filter isUniq
+  . chunkN numDirs
+  . randomRs (fromEnum rangeMin, fromEnum rangeMax)
+  where
+    chunkN n l  = take n l : chunkN n (drop 1 l)
+    isUniq list = length list == length (nub list)
+    numDirs     = length [rangeMin .. rangeMax]
+
 initMaze :: Int -> Int -> Maze
 initMaze w h = Maze w h Map.empty
 
@@ -92,15 +104,3 @@ createMaze gen w h = walk (gen, initMaze w h)
           | otherwise             = walk (gen'', openWall maze fromNode dir) toNode
           where
             dir = getDirection fromNode toNode
-
-randomEnumList :: (Enum a, RandomGen g) => (a, a) -> g -> [a]
-randomEnumList (rangeMin, rangeMax) =
-  map toEnum
-  . head
-  . filter isUniq
-  . chunkN numDirs
-  . randomRs (fromEnum rangeMin, fromEnum rangeMax)
-  where
-    chunkN n l  = take n l : chunkN n (drop n l)
-    isUniq list = length list == length (nub list)
-    numDirs     = length [rangeMin .. rangeMax]

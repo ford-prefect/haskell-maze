@@ -7,4 +7,4 @@ import Lib
 main :: IO ()
 main = do
   gen <- newStdGen
-  putStr . renderMaze . createMaze gen 10 10 $ (5, 5)
+  putStr . renderMaze . createMaze gen 20 15 $ (5, 5)

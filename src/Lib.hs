@@ -2,6 +2,7 @@ module Lib
     ( Node
     , createMaze
     , renderMaze
+    , solveMaze
     ) where
 
 import qualified Data.Map as Map
@@ -62,8 +63,8 @@ openWall m@(Maze w h edges) node dir
     neigh    = getNeighbour m node dir
     hasNoAdj = isNothing $ Map.lookup node edges
 
-renderMaze :: Maze -> String
-renderMaze (Maze w h edges) = unlines $ concatMap renderRow [1..h+1]
+renderMaze :: Maze -> [Node] -> String
+renderMaze (Maze w h edges) path = unlines $ concatMap renderRow [1..h+1]
   where
     renderRow r = [concatMap head rowString, concatMap (head . tail) rowString]
       where rowString = map (renderNode r) [1..w+1]
@@ -71,12 +72,21 @@ renderMaze (Maze w h edges) = unlines $ concatMap renderRow [1..h+1]
       | x == w+1 && y == h+1  = [ "*"   , ""     ] -- bottom right corner
       | x == w+1              = [ "*"   , "|"    ] -- right wall
       | y == h+1              = [ "*---", ""     ] -- bottom wall
-      | adj == Just BothNodes = [ "*   ", "    " ] -- left and up are open
-      | adj == Just LeftNode  = [ "*---", "    " ] -- left is open
-      | adj == Just UpNode    = [ "*   ", "|   " ] -- up is open
-      | otherwise             = [ "*---", "|   " ] -- left and up are closed
+      | adj == Just BothNodes = [ "*   ", "  " ++ nodeStr ++ " " ] -- left and up are open
+      | adj == Just LeftNode  = [ "*---", "  " ++ nodeStr ++ " " ] -- left is open
+      | adj == Just UpNode    = [ "*   ", "| " ++ nodeStr ++ " " ] -- up is open
+      | otherwise             = [ "*---", "| " ++ nodeStr ++ " " ] -- left and up are closed
       where 
          adj = Map.lookup (x, y) edges
+         -- FIXME: last is linear, will bomb
+         nodeStr = if (x, y) == last path then "👽" else case lookup (x, y) $ zip path (tail path) of
+                     Nothing -> " "
+                     Just to -> dirToStr $ getDirection (x, y) to
+         dirToStr d = case d of
+                        L -> "←"
+                        R -> "→"
+                        U -> "↑"
+                        D -> "↓"
 
 randomEnumList :: (Enum a, RandomGen g) => (a, a) -> g -> [a]
 randomEnumList (rangeMin, rangeMax) =
@@ -121,3 +131,8 @@ dfs neighboursOf start fin = fst $ dfs' Set.empty $ start
       where
         ns = filter (not . flip Set.member v) (neighboursOf cur)
         v' = Set.insert cur v
+
+solveMaze :: Maze -> Node -> Node -> [Node]
+solveMaze maze start fin = fromMaybe [] $ dfs (getOpenNeighbours maze) start fin
+  where
+    getOpenNeighbours maze node = mapMaybe (getNeighbour maze node) (filter (isOpenWall maze node) [minBound .. ])

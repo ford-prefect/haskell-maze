@@ -7,4 +7,8 @@ import Lib
 main :: IO ()
 main = do
   gen <- newStdGen
-  putStr . renderMaze $ createMaze gen 10 10
+  let w = 20
+      h = 12
+      maze = createMaze gen w h
+      soln = solveMaze maze (1, 1) (w, h)
+  putStr . renderMaze maze $ soln

@@ -5,8 +5,9 @@ module Lib
     ) where
 
 import qualified Data.Map as Map
-import Data.Maybe (fromJust, isNothing, mapMaybe)
-import Data.List (nub)
+import qualified Data.Set as Set
+import Data.Maybe
+import Data.List (find, nub)
 import System.Random (RandomGen, randomR, randomRs, split)
 
 type Node = (Int, Int)
@@ -104,3 +105,19 @@ createMaze gen w h = walk (gen0, initMaze w h) (startX, startY)
           | otherwise             = walk (gen4, openWall maze fromNode dir) toNode
           where
             dir = getDirection fromNode toNode
+
+dfs :: (Eq a, Ord a) => (a -> [a]) -> a -> a -> Maybe [a]
+dfs neighboursOf start fin = fst $ dfs' Set.empty $ start
+  where
+    dfs' v cur
+      | cur == fin = (Just [cur], v')
+      | null ns    = (Nothing, v')
+      | otherwise  = case foldl (\(r, v'') n -> case r of
+                                      Just p  -> (Just p, v'')
+                                      Nothing -> (dfs' v'' n))
+                           (Nothing, v') ns of
+                       (Nothing, v''') -> (Nothing, v''')
+                       (Just p, v''')  -> (Just (cur : p), v''')
+      where
+        ns = filter (not . flip Set.member v) (neighboursOf cur)
+        v' = Set.insert cur v
